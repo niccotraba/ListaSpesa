@@ -9,7 +9,8 @@ include(${wxWidgets_USE_FILE})
 
 # Aggiunge l'eseguibile (se aggiungi file .cpp in futuro, mettili qui dopo main.cpp)
 add_executable(ListaSpesa main.cpp
-        Observer.h)
+        Observer.h
+        Subject.h)
 
 # Collega la grafica all'eseguibile
 target_link_libraries(ListaSpesa ${wxWidgets_LIBRARIES})
