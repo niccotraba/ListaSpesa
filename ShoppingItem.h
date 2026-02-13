@@ -27,6 +27,7 @@ public:
     bool isPurchased() const { return purchased; }
     const std::string& getCategory() const { return category; }
     double getPrice() const { return price; }
+    double getTotalCost() const {return quantity * price;}
 
     //setters
     void setName (const std::string& name_);
@@ -44,6 +45,12 @@ public:
     //metodo che restituisce una descrizione dell'elemento. Formato atteso: "nome (quantità) - categoria - prezzo - stato di acquisto"
     std::string getDescription() const;
 
+    //metodi per la persistenza
+    //metodo che converte l'elmento in una stringa per il salvataggio. Formato atteso: "nome,quantità,purchased,categoria,prezzo"
+    std::string toString() const;
+
+    //metodo per creare uno shopping item da una stringa di testo CSV. std::invalid_argument se il formato è errato. Formato atteso: "nome,quantità,purchased,categoria,prezzo"
+    static ShoppingItem fromString(const std::string& str);
 };
 
 #endif //LISTASPESA_SHOPPINGITEM_H
