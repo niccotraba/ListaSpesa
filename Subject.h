@@ -1,6 +1,6 @@
 /*
  * Interfaccia dei Subjects.
- * Gestisce i osggetti osservati dagli oberver fornendo i metodi per aggiungere, rimuovere e notificare gli osservatori.
+ * Gestisce i soggetti osservati dagli oberver fornendo i metodi per aggiungere, rimuovere e notificare gli osservatori.
  */
 
 
@@ -19,10 +19,13 @@ class Subject {
     virtual ~Subject() = default;
 
     //metodo per registrare un nuovo osservatore
-    // TODO: aggiungere un controllo per evitare di avere observer duplicati
     void addObserver (Observer* observer) {
-        if (observer !=nullptr) {
-            observers_.push_back(observer);
+        if (observer != nullptr) {
+            //controllo per evitare duplicati
+            auto it = std::find(observers_.begin(), observers_.end(), observer);
+            if (it == observers_.end()) {
+                observers_.push_back(observer);
+            }
         }
     }
 
