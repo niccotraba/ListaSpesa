@@ -21,9 +21,6 @@ public:
     //costruttore
     explicit ShoppingList(const std::string& listName = "Lista Spesa");
 
-    //getters
-    size_t getUnpurchasedItemCount() const; //restituisce il numero di elementi non acquistati
-
     //metodi per gestire la lista
     //metodo per aggiungere un prodotto
     void addItem(const ShoppingItem& item);
@@ -34,6 +31,9 @@ public:
     //metodo per modificare lo stato acquisto
     void togglePurchased(int index);
 
+    //metodo per calcolare il costo totale della lista. Se onlyUnpurchased è true, calcola solo il costo degli elementi non acquistati
+    double getTotalCost(bool onlyUnpurchased = false) const;
+
     //metodo per svuotare la lista
     void clearAll();
 
@@ -43,6 +43,17 @@ public:
 
     //restituisce il nome della lista
     std::string getName() const { return listName; }
+
+    //restituisce il numero di elementi non acquistati
+    size_t getUnpurchasedItemCount() const;
+
+    //metodi per la persistenza
+    //metodo per salvare la lista su file. Il formato del file è CSV. Restituisce true se il salvataggio è avvenuto con successo, false altrimenti
+    bool saveToFile(const std::string& filename) const;
+
+    //metodo per caricare la lista da un file. Il formato del file è CSV. Restituisce true se il caricamento è avvenuto con successo, false altrimenti. Il metodo svuota la lista corrente prima di creare la nuova lista.
+    bool loadFromFile(const std::string& filename);
+
 
 
 };
