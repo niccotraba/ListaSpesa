@@ -24,6 +24,8 @@ MainFrame::MainFrame(const wxString& title, ShoppingList& list)
     //creazione bottoni
     addButton = new wxButton(panel, wxID_ANY, "Aggiungi");
     removeButton = new wxButton(panel, wxID_ANY, "Rimuovi");
+    editButton = new wxButton(panel, wxID_ANY, "Modifica");
+    toggleButton = new wxButton(panel, wxID_ANY, "Preso");
     wxButton* quitButton = new wxButton(panel, wxID_ANY, "Esci");
 
     //layout con sizer
@@ -34,6 +36,8 @@ MainFrame::MainFrame(const wxString& title, ShoppingList& list)
     wxBoxSizer* buttonSizer = new wxBoxSizer(wxHORIZONTAL);
     buttonSizer->Add(addButton, 0, wxALL, 5);
     buttonSizer->Add(removeButton, 0, wxALL, 5);
+    buttonSizer->Add(editButton, 0, wxALL, 5);
+    buttonSizer->Add(toggleButton, 0, wxALL, 5);
     buttonSizer->Add(quitButton, 0, wxALL, 5);
 
     //aggiunta alla finestra
@@ -45,6 +49,8 @@ MainFrame::MainFrame(const wxString& title, ShoppingList& list)
     //collegamento eventi
     addButton->Bind(wxEVT_BUTTON, &MainFrame::OnAdd, this);
     removeButton->Bind(wxEVT_BUTTON, &MainFrame::OnRemove, this);
+    editButton->Bind(wxEVT_BUTTON, &MainFrame::OnEdit, this);
+    toggleButton->Bind(wxEVT_BUTTON, &MainFrame::OnToggle, this);
     quitButton->Bind(wxEVT_BUTTON, &MainFrame::OnQuit, this);
 
     this->Centre();
@@ -85,6 +91,7 @@ void MainFrame::update() {
 
 //funzioni eventi dei bottoni
 
+//evento delo bottone "aggiungi"
 void MainFrame::OnAdd(wxCommandEvent& event) {
     //diaologo vuoto
     EditDialog dialog(this, "Aggiungi Prodotto");
@@ -105,6 +112,7 @@ void MainFrame::OnAdd(wxCommandEvent& event) {
     }
 }
 
+//evento per il bottone "rimuovi"
 void MainFrame::OnRemove(wxCommandEvent& event) {
     //indice selezionato dalla lista. -1 se nessun elemento è selezionato
     long itemIndex = -1;
@@ -115,6 +123,50 @@ void MainFrame::OnRemove(wxCommandEvent& event) {
     }
 }
 
+//evento per il bottone "esci"
 void MainFrame::OnQuit(wxCommandEvent& event) {
     Close(true);
+}
+
+//evento per il bottone "modifica"
+void MainFrame::OnEdit(wxCommandEvent& event) {
+    //prendo l'indice selezionato
+    long itemIndex = -1;
+    itemIndex = listView->GetNextItem(itemIndex, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
+
+    if (itemIndex == -1) return; // Niente selezionato
+
+    //recupero l'oggetto attuale dalla lista: copiamo i dati per pre-riempire il form
+    const auto& item = list.getItems()[itemIndex];
+
+    //il dialogo si apre con i dati vecchi
+    EditDialog dialog(this, "Modifica Prodotto",
+                      item.getName(),
+                      item.getQuantity(),
+                      item.getCategory(),
+                      item.getPrice());
+
+    //se l'utente preme OK, prendo i dati inseriti e creo un nuovo oggetto ShoppingItem, che poi sostituisco a quello vecchio nella lista
+    if (dialog.ShowModal() == wxID_OK) {
+        ShoppingItem updatedItem(
+            dialog.getName().ToStdString(),
+            dialog.getQuantity(),
+            item.isPurchased(), // Mantengo lo stato di acquisto vecchio
+            dialog.getCategory().ToStdString(),
+            dialog.getPrice()
+        );
+
+        list.modifyItem(itemIndex, updatedItem);
+    }
+}
+
+//evento per il bottone "preso" (toggle stato di acquisto)
+void MainFrame::OnToggle(wxCommandEvent& event) {
+    long itemIndex = -1;
+    itemIndex = listView->GetNextItem(itemIndex, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
+
+    if (itemIndex != -1) {
+        list.togglePurchased(itemIndex);
+        // L'observer ridisegnerà la lista aggiornando la scritta "Preso/Da prendere"
+    }
 }

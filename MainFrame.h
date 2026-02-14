@@ -14,11 +14,15 @@ private:
     //elementi grafici
     wxListView* listView;
     wxButton* addButton;
+    wxButton* editButton;
+    wxButton* toggleButton;
     wxButton* removeButton;
 
     //metodi per gli eventi
     void OnAdd(wxCommandEvent& event);
     void OnRemove(wxCommandEvent& event);
+    void OnEdit(wxCommandEvent& event);
+    void OnToggle(wxCommandEvent& event);
     void OnQuit(wxCommandEvent& event);
 
 public:
