@@ -35,6 +35,14 @@ void ShoppingList::removeItem(int index) {
     }
 }
 
+//implementazione metodo per modificare un elemento della lista (per indice)
+void ShoppingList::modifyItem(int index, const ShoppingItem& newItem) {
+    if (index >= 0 && index < items.size()) {
+        items[index] = newItem; //sovrascrive l'oggetto vecchio
+        notify(); //aggiorna la grafica
+    }
+}
+
 //implementazione metodo per modificare lo statop di acquisto di un elemento (per indice)
 void ShoppingList::togglePurchased(int index) {
     if (index >= 0 && index < items.size()) {

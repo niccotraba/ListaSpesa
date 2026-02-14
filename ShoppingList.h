@@ -10,7 +10,6 @@
 #include "ShoppingItem.h"
 #include <vector>
 #include <string>
-#include <optional>
 
 class ShoppingList : public Subject {
 private:
@@ -27,6 +26,9 @@ public:
 
     //metodo per rimuovere prodotto (tramite indice)
     void removeItem(int index);
+
+    //metodo per modificare un prodotto della lista
+    void modifyItem(int index, const ShoppingItem& newItem);
 
     //metodo per modificare lo stato acquisto
     void togglePurchased(int index);
