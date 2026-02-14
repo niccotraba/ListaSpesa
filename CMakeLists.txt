@@ -30,7 +30,11 @@ set(SOURCE_FILES
 )
 
 # Eseguibile principale (GUI)
-add_executable(ListaSpesa main.cpp ${SOURCE_FILES})
+add_executable(ListaSpesa
+        main.cpp
+        MainFrame.h
+        MainFrame.cpp
+        ${SOURCE_FILES})
 target_link_libraries(ListaSpesa ${wxWidgets_LIBRARIES})
 
 # Eseguibile per i test (Unit Test)
