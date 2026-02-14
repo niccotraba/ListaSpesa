@@ -34,6 +34,8 @@ add_executable(ListaSpesa
         main.cpp
         MainFrame.h
         MainFrame.cpp
+        MFdialog.h
+        MFdialog.cpp
         ${SOURCE_FILES})
 target_link_libraries(ListaSpesa ${wxWidgets_LIBRARIES})
 
