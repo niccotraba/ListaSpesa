@@ -108,9 +108,11 @@ void MainFrame::update() {
         }
     }
 
-    //aggiornamento del totale
+    //calcolo totali
     double total = list.getTotalCost(); //calcola il totale della lista (tutti gli elementi, anche quelli acquistati)
-    totalText->SetLabel(wxString::Format("Totale Lista: %.2f €", total));
+    double cart = list.getPurchasedCost();
+
+    totalText->SetLabel(wxString::Format("Totale: %.2f €  (Carrello: %.2f €)", total, cart));
     //forzo il ridisegno della finestra per aggiornare la grafica
     totalText->GetParent()->Layout();
 

@@ -66,6 +66,17 @@ double ShoppingList::getTotalCost(bool onlyUnpurchased) const {
     return totalCost;
 }
 
+//implementazione metodo per calcolare il costo totale degli elementi acquistati
+double ShoppingList::getPurchasedCost() const {
+    double total = 0.0;
+    for (const auto& item : items) {
+        if (item.isPurchased()) {
+            total += item.getTotalCost();
+        }
+    }
+    return total;
+}
+
 
 //implementazione metodo per svuotare la lista
 void ShoppingList::clearAll() {

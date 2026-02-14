@@ -20,7 +20,7 @@ public:
     //costruttore
     explicit ShoppingList(const std::string& listName = "Lista Spesa");
 
-    //metodi per gestire la lista
+    //METODI GESTIONE LISTA
     //metodo per aggiungere un prodotto
     void addItem(const ShoppingItem& item);
 
@@ -36,10 +36,13 @@ public:
     //metodo per calcolare il costo totale della lista. Se onlyUnpurchased è true, calcola solo il costo degli elementi non acquistati
     double getTotalCost(bool onlyUnpurchased = false) const;
 
+    //metodo per calcolare il costo totale degli elementi acquistati
+    double getPurchasedCost() const;
+
     //metodo per svuotare la lista
     void clearAll();
 
-    //getters
+    //GETTERS
     //restituisce la lista degli elementi
     const std::vector<ShoppingItem>& getItems() const { return items; }
 
@@ -55,8 +58,6 @@ public:
 
     //metodo per caricare la lista da un file. Il formato del file è CSV. Restituisce true se il caricamento è avvenuto con successo, false altrimenti. Il metodo svuota la lista corrente prima di creare la nuova lista.
     bool loadFromFile(const std::string& filename);
-
-
 
 };
 #endif //LISTASPESA_SHOPPINGLIST_H
