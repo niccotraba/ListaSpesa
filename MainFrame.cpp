@@ -1,97 +1,112 @@
 #include "MainFrame.h"
-#include <wx/listctrl.h> // Fondamentale per la lista
+#include <wx/listctrl.h> //per la lista
+#include "MFdialog.h" //per il dialogo di inserimento/modifica
 
 MainFrame::MainFrame(const wxString& title, ShoppingList& list)
     : wxFrame(nullptr, wxID_ANY, title, wxDefaultPosition, wxSize(600, 400)), list(list) {
 
-    // 1. Registrazione Observer
+    //registrazione Observer
     list.addObserver(this);
 
-    // 2. Pannello principale (Sfondo)
+    //pannello principale (sfondo)
     wxPanel* panel = new wxPanel(this);
 
-    // 3. Creazione della Lista (Tabella)
-    // wxLC_REPORT significa "modalità dettagli" (colonne)
-    listView = new wxListView(panel, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxLC_REPORT);
+    //creazione della Lista (tabella)
+    listView = new wxListView(panel, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxLC_REPORT); //wxLC_REPORT per la visualizzazione a tabella
 
-    // Aggiungiamo le colonne
+    //aggiunta le colonne
     listView->AppendColumn("Prodotto", wxLIST_FORMAT_LEFT, 150);
     listView->AppendColumn("Quantità", wxLIST_FORMAT_CENTER, 80);
     listView->AppendColumn("Categoria", wxLIST_FORMAT_LEFT, 100);
     listView->AppendColumn("Prezzo", wxLIST_FORMAT_RIGHT, 80);
     listView->AppendColumn("Stato", wxLIST_FORMAT_CENTER, 100);
 
-    // 4. Creazione Bottoni
+    //creazione bottoni
     addButton = new wxButton(panel, wxID_ANY, "Aggiungi");
     removeButton = new wxButton(panel, wxID_ANY, "Rimuovi");
     wxButton* quitButton = new wxButton(panel, wxID_ANY, "Esci");
 
-    // 5. Layout (I Sizers)
-    // Sizer principale verticale (Lista sopra, bottoni sotto)
+    //layout con sizer
+    //sizer principale verticale (Lista sopra, bottoni sotto)
     wxBoxSizer* mainSizer = new wxBoxSizer(wxVERTICAL);
 
-    // Sizer orizzontale per i bottoni (li mette in riga)
+    //sizer orizzontale per i bottoni (in riga)
     wxBoxSizer* buttonSizer = new wxBoxSizer(wxHORIZONTAL);
     buttonSizer->Add(addButton, 0, wxALL, 5);
     buttonSizer->Add(removeButton, 0, wxALL, 5);
     buttonSizer->Add(quitButton, 0, wxALL, 5);
 
-    // Assembliamo tutto
+    //aggiunta alla finestra
     mainSizer->Add(listView, 1, wxEXPAND | wxALL, 10); // La lista si espande (1)
     mainSizer->Add(buttonSizer, 0, wxALIGN_CENTER | wxBOTTOM, 10); // I bottoni no (0)
 
     panel->SetSizer(mainSizer);
 
-    // 6. Collegamento Eventi (Click dei bottoni)
+    //collegamento eventi
     addButton->Bind(wxEVT_BUTTON, &MainFrame::OnAdd, this);
     removeButton->Bind(wxEVT_BUTTON, &MainFrame::OnRemove, this);
     quitButton->Bind(wxEVT_BUTTON, &MainFrame::OnQuit, this);
 
     this->Centre();
 
-    // Chiamata iniziale per popolare la lista se ci sono già dati
+    //chiamata iniziale per popolare la lista con eventuali dati già presenti
     update();
 }
 
-// Questa funzione viene chiamata automaticamente quando la ShoppingList cambia (notify)
+//funzione chiamata quando la lista notifica un cambiamento (tramite notify()) per aggiornare la grafica
 void MainFrame::update() {
-    // 1. Pulisce la grafica vecchia
+    //ogni volta che la lista cambia, la grafica vecchia viene eliminata e ricostruita da capo
+    //grafica vecchia svuotata
     listView->DeleteAllItems();
 
-    // 2. Prende i dati aggiornati
+    //dati aggiornati
     const auto& items = list.getItems();
 
-    // 3. Riscrive tutto nella tabella
+    //ricostruzione grafica con i dati aggiornati
     for (int i = 0; i < items.size(); ++i) {
         const auto& item = items[i];
 
-        // Inserisce la riga (Colonna 0: Nome)
+        //inserimento nuova riga con il nome del prodotto (colonna 0)
         listView->InsertItem(i, item.getName());
 
-        // Imposta le altre colonne della stessa riga
+        //inserimento quantità (colonna 1)
         listView->SetItem(i, 1, std::to_string(item.getQuantity()));
         listView->SetItem(i, 2, item.getCategory());
 
-        // Formattazione prezzo
+        //inserimento prezzo (colonna 3), formattato con due decimali e simbolo euro
         listView->SetItem(i, 3, wxString::Format("%.2f €", item.getPrice()));
 
-        // Stato
+        //stato
         listView->SetItem(i, 4, item.isPurchased() ? "Preso" : "Da prendere");
 
-        // Se è comprato, magari cambiamo colore (opzionale, per ora lasciamo standard)
+        //TODO: si potrebbe aggiungere un'icona o un colore diverso per gli elementi acquistati, per renderli più evidenti.
     }
 }
 
-// --- Funzioni eventi (Stub per ora) ---
+//funzioni eventi dei bottoni
 
 void MainFrame::OnAdd(wxCommandEvent& event) {
-    // Per ora testiamo solo se il bottone funziona aggiungendo un oggetto fisso
-    ShoppingItem testItem("Test Prodotto", 1, false, "Test", 9.99);
-    list.addItem(testItem);
+    //diaologo vuoto
+    EditDialog dialog(this, "Aggiungi Prodotto");
+
+    //se l'utente preme OK, prendo i dati inseriti e creo un nuovo oggetto ShoppingItem, che poi aggiungo alla lista
+    if (dialog.ShowModal() == wxID_OK) {
+        // Se ha premuto OK, creo l'oggetto con i dati inseriti
+        ShoppingItem newItem(
+            dialog.getName().ToStdString(),
+            dialog.getQuantity(),
+            false, // Non comprato
+            dialog.getCategory().ToStdString(),
+            dialog.getPrice()
+        );
+
+        //aggiungo alla lista, che poi notifica la MainFrame per aggiornare la grafica
+        list.addItem(newItem);
+    }
 }
 
 void MainFrame::OnRemove(wxCommandEvent& event) {
-    // Prende l'indice selezionato nella grafica
+    //indice selezionato dalla lista. -1 se nessun elemento è selezionato
     long itemIndex = -1;
     itemIndex = listView->GetNextItem(itemIndex, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
 
