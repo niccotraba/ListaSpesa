@@ -3,60 +3,78 @@
 #include "MFdialog.h" //per il dialogo di inserimento/modifica
 
 MainFrame::MainFrame(const wxString& title, ShoppingList& list)
-    : wxFrame(nullptr, wxID_ANY, title, wxDefaultPosition, wxSize(600, 400)), list(list) {
+    : wxFrame(nullptr, wxID_ANY, title, wxDefaultPosition, wxSize(600, 450)), list(list) {
 
-    //registrazione Observer
     list.addObserver(this);
 
-    //pannello principale (sfondo)
+    //barra menu
+    wxMenuBar* menuBar = new wxMenuBar();
+    wxMenu* fileMenu = new wxMenu();
+
+    fileMenu->Append(wxID_SAVE, "&Salva Lista...\tCtrl-S");
+    fileMenu->Append(wxID_OPEN, "&Carica Lista...\tCtrl-O");
+    fileMenu->AppendSeparator();
+    fileMenu->Append(wxID_EXIT, "&Esci\tAlt-F4");
+
+    menuBar->Append(fileMenu, "&File");
+    SetMenuBar(menuBar); //attacca il menu alla finestra
+
+    //layout principale
     wxPanel* panel = new wxPanel(this);
+    wxBoxSizer* mainSizer = new wxBoxSizer(wxVERTICAL);
 
-    //creazione della Lista (tabella)
-    listView = new wxListView(panel, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxLC_REPORT); //wxLC_REPORT per la visualizzazione a tabella
-
-    //aggiunta le colonne
+    //lista (tabella)
+    listView = new wxListView(panel, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxLC_REPORT);
     listView->AppendColumn("Prodotto", wxLIST_FORMAT_LEFT, 150);
     listView->AppendColumn("Quantità", wxLIST_FORMAT_CENTER, 80);
     listView->AppendColumn("Categoria", wxLIST_FORMAT_LEFT, 100);
     listView->AppendColumn("Prezzo", wxLIST_FORMAT_RIGHT, 80);
     listView->AppendColumn("Stato", wxLIST_FORMAT_CENTER, 100);
 
-    //creazione bottoni
-    addButton = new wxButton(panel, wxID_ANY, "Aggiungi");
-    removeButton = new wxButton(panel, wxID_ANY, "Rimuovi");
-    editButton = new wxButton(panel, wxID_ANY, "Modifica");
-    toggleButton = new wxButton(panel, wxID_ANY, "Preso");
-    wxButton* quitButton = new wxButton(panel, wxID_ANY, "Esci");
+    //bottoni
+    addButton = new wxButton(panel, wxID_ANY, "Aggiungi"); //creazione del bottone "Aggiungi"
+    editButton = new wxButton(panel, wxID_ANY, "Modifica"); //creazione del bottone "Modifica"
+    toggleButton = new wxButton(panel, wxID_ANY, "Segna Preso"); //creazione del bottone "Segna Preso"
+    removeButton = new wxButton(panel, wxID_ANY, "Rimuovi"); //creazione del bottone "Rimuovi"
+    wxButton* quitButton = new wxButton(panel, wxID_ANY, "Esci"); //creazione del bottone "Esci"
 
-    //layout con sizer
-    //sizer principale verticale (Lista sopra, bottoni sotto)
-    wxBoxSizer* mainSizer = new wxBoxSizer(wxVERTICAL);
-
-    //sizer orizzontale per i bottoni (in riga)
     wxBoxSizer* buttonSizer = new wxBoxSizer(wxHORIZONTAL);
     buttonSizer->Add(addButton, 0, wxALL, 5);
-    buttonSizer->Add(removeButton, 0, wxALL, 5);
     buttonSizer->Add(editButton, 0, wxALL, 5);
     buttonSizer->Add(toggleButton, 0, wxALL, 5);
+    buttonSizer->Add(removeButton, 0, wxALL, 5);
     buttonSizer->Add(quitButton, 0, wxALL, 5);
 
-    //aggiunta alla finestra
-    mainSizer->Add(listView, 1, wxEXPAND | wxALL, 10); // La lista si espande (1)
-    mainSizer->Add(buttonSizer, 0, wxALIGN_CENTER | wxBOTTOM, 10); // I bottoni no (0)
+    //prezzo totale (in basso a destra)
+    totalText = new wxStaticText(panel, wxID_ANY, "Totale: 0.00 €");
+    wxFont font = totalText->GetFont();
+    font.SetWeight(wxFONTWEIGHT_BOLD); //grassetto e testo più grande per evidenziare il totale
+    font.SetPointSize(12);
+    totalText->SetFont(font);
+
+    //layout
+    mainSizer->Add(listView, 1, wxEXPAND | wxALL, 10);
+    //il totale viene allineato a destra con un margine
+    mainSizer->Add(totalText, 0, wxALIGN_RIGHT | wxRIGHT | wxBOTTOM, 15);
+    mainSizer->Add(buttonSizer, 0, wxALIGN_CENTER | wxBOTTOM, 10);
 
     panel->SetSizer(mainSizer);
 
-    //collegamento eventi
+    //eventi
+    //menu
+    Bind(wxEVT_MENU, &MainFrame::OnSave, this, wxID_SAVE);
+    Bind(wxEVT_MENU, &MainFrame::OnLoad, this, wxID_OPEN);
+    Bind(wxEVT_MENU, &MainFrame::OnQuit, this, wxID_EXIT);
+
+    //bottoni
     addButton->Bind(wxEVT_BUTTON, &MainFrame::OnAdd, this);
-    removeButton->Bind(wxEVT_BUTTON, &MainFrame::OnRemove, this);
     editButton->Bind(wxEVT_BUTTON, &MainFrame::OnEdit, this);
     toggleButton->Bind(wxEVT_BUTTON, &MainFrame::OnToggle, this);
+    removeButton->Bind(wxEVT_BUTTON, &MainFrame::OnRemove, this);
     quitButton->Bind(wxEVT_BUTTON, &MainFrame::OnQuit, this);
 
     this->Centre();
-
-    //chiamata iniziale per popolare la lista con eventuali dati già presenti
-    update();
+    update(); //aggiorna la grafica iniziale con i dati della lista (che è vuota all'inizio)
 }
 
 //funzione chiamata quando la lista notifica un cambiamento (tramite notify()) per aggiornare la grafica
@@ -64,30 +82,36 @@ void MainFrame::update() {
     //ogni volta che la lista cambia, la grafica vecchia viene eliminata e ricostruita da capo
     //grafica vecchia svuotata
     listView->DeleteAllItems();
-
-    //dati aggiornati
     const auto& items = list.getItems();
 
     //ricostruzione grafica con i dati aggiornati
     for (int i = 0; i < items.size(); ++i) {
         const auto& item = items[i];
 
-        //inserimento nuova riga con il nome del prodotto (colonna 0)
+        //inserimento dati nella lista grafica
         listView->InsertItem(i, item.getName());
-
-        //inserimento quantità (colonna 1)
         listView->SetItem(i, 1, std::to_string(item.getQuantity()));
         listView->SetItem(i, 2, item.getCategory());
-
-        //inserimento prezzo (colonna 3), formattato con due decimali e simbolo euro
         listView->SetItem(i, 3, wxString::Format("%.2f €", item.getPrice()));
 
-        //stato
-        listView->SetItem(i, 4, item.isPurchased() ? "Preso" : "Da prendere");
-
-        //TODO: si potrebbe aggiungere un'icona o un colore diverso per gli elementi acquistati, per renderli più evidenti.
+        //se è comprato, la colonna "Stato" diventa "PRESO" e il testo diventa verde. Altrimenti, "Da prendere" e testo nero
+        if (item.isPurchased()) {
+            listView->SetItem(i, 4, "PRESO");
+            listView->SetItemTextColour(i, *wxLIGHT_GREY); //diventa verde
+        } else {
+            listView->SetItem(i, 4, "Da prendere");
+            listView->SetItemTextColour(i, *wxBLACK);
+        }
     }
+
+    //aggiornamento del totale
+    double total = list.getTotalCost(); //calcola il totale della lista (tutti gli elementi, anche quelli acquistati)
+    totalText->SetLabel(wxString::Format("Totale Lista: %.2f €", total));
+
+    //forzo il ridisegno della finestra per aggiornare la grafica
+    totalText->GetParent()->Layout();
 }
+
 
 //funzioni eventi dei bottoni
 
@@ -168,5 +192,33 @@ void MainFrame::OnToggle(wxCommandEvent& event) {
     if (itemIndex != -1) {
         list.togglePurchased(itemIndex);
         // L'observer ridisegnerà la lista aggiornando la scritta "Preso/Da prendere"
+    }
+}
+
+void MainFrame::OnSave(wxCommandEvent& event) {
+    //apre una finestra "Salva con nome"
+    wxFileDialog saveFileDialog(this, "Salva lista spesa", "", "spesa.csv",
+                                "File CSV (*.csv)|*.csv", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+
+    if (saveFileDialog.ShowModal() == wxID_CANCEL)
+        return; //l'utente ha annullato l'operazione
+
+    //recupera il percorso scelto e salva
+    if (!list.saveToFile(saveFileDialog.GetPath().ToStdString())) {
+        wxLogError("Impossibile salvare il file!");
+    }
+}
+
+void MainFrame::OnLoad(wxCommandEvent& event) {
+    //apre una finestra "Apri file"
+    wxFileDialog openFileDialog(this, "Apri lista spesa", "", "",
+                                "File CSV (*.csv)|*.csv", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+
+    if (openFileDialog.ShowModal() == wxID_CANCEL)
+        return;
+
+    //carica il file
+    if (!list.loadFromFile(openFileDialog.GetPath().ToStdString())) {
+        wxLogError("Impossibile caricare il file! Forse il formato è errato.");
     }
 }
