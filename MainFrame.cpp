@@ -5,6 +5,7 @@
 MainFrame::MainFrame(const wxString& title, ShoppingList& list)
     : wxFrame(nullptr, wxID_ANY, title, wxDefaultPosition, wxSize(600, 450)), list(list) {
 
+    isUpdating = false; //inizialmente non stiamo aggiornando la grafica
     list.addObserver(this);
 
     //barra menu
@@ -23,25 +24,25 @@ MainFrame::MainFrame(const wxString& title, ShoppingList& list)
     wxPanel* panel = new wxPanel(this);
     wxBoxSizer* mainSizer = new wxBoxSizer(wxVERTICAL);
 
-    //lista (tabella)
+    //lista con checkbox
     listView = new wxListView(panel, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxLC_REPORT);
+    listView->EnableCheckBoxes(true); //attivo le checkbox per ogni riga della lista
+
+    //colonne lista (tabella)
     listView->AppendColumn("Prodotto", wxLIST_FORMAT_LEFT, 150);
     listView->AppendColumn("Quantità", wxLIST_FORMAT_CENTER, 80);
     listView->AppendColumn("Categoria", wxLIST_FORMAT_LEFT, 100);
     listView->AppendColumn("Prezzo", wxLIST_FORMAT_RIGHT, 80);
-    listView->AppendColumn("Stato", wxLIST_FORMAT_CENTER, 100);
 
     //bottoni
     addButton = new wxButton(panel, wxID_ANY, "Aggiungi"); //creazione del bottone "Aggiungi"
     editButton = new wxButton(panel, wxID_ANY, "Modifica"); //creazione del bottone "Modifica"
-    toggleButton = new wxButton(panel, wxID_ANY, "Segna Preso"); //creazione del bottone "Segna Preso"
     removeButton = new wxButton(panel, wxID_ANY, "Rimuovi"); //creazione del bottone "Rimuovi"
     wxButton* quitButton = new wxButton(panel, wxID_ANY, "Esci"); //creazione del bottone "Esci"
 
     wxBoxSizer* buttonSizer = new wxBoxSizer(wxHORIZONTAL);
     buttonSizer->Add(addButton, 0, wxALL, 5);
     buttonSizer->Add(editButton, 0, wxALL, 5);
-    buttonSizer->Add(toggleButton, 0, wxALL, 5);
     buttonSizer->Add(removeButton, 0, wxALL, 5);
     buttonSizer->Add(quitButton, 0, wxALL, 5);
 
@@ -57,7 +58,6 @@ MainFrame::MainFrame(const wxString& title, ShoppingList& list)
     //il totale viene allineato a destra con un margine
     mainSizer->Add(totalText, 0, wxALIGN_RIGHT | wxRIGHT | wxBOTTOM, 15);
     mainSizer->Add(buttonSizer, 0, wxALIGN_CENTER | wxBOTTOM, 10);
-
     panel->SetSizer(mainSizer);
 
     //eventi
@@ -69,9 +69,12 @@ MainFrame::MainFrame(const wxString& title, ShoppingList& list)
     //bottoni
     addButton->Bind(wxEVT_BUTTON, &MainFrame::OnAdd, this);
     editButton->Bind(wxEVT_BUTTON, &MainFrame::OnEdit, this);
-    toggleButton->Bind(wxEVT_BUTTON, &MainFrame::OnToggle, this);
     removeButton->Bind(wxEVT_BUTTON, &MainFrame::OnRemove, this);
     quitButton->Bind(wxEVT_BUTTON, &MainFrame::OnQuit, this);
+
+    //evento quando viene spuntato il checkbox di un elemento della lista per segnare come acquistato o da prendere
+    listView->Bind(wxEVT_LIST_ITEM_CHECKED, &MainFrame::OnListCheck, this);
+    listView->Bind(wxEVT_LIST_ITEM_UNCHECKED, &MainFrame::OnListCheck, this);
 
     this->Centre();
     update(); //aggiorna la grafica iniziale con i dati della lista (che è vuota all'inizio)
@@ -81,7 +84,8 @@ MainFrame::MainFrame(const wxString& title, ShoppingList& list)
 void MainFrame::update() {
     //ogni volta che la lista cambia, la grafica vecchia viene eliminata e ricostruita da capo
     //grafica vecchia svuotata
-    listView->DeleteAllItems();
+    isUpdating = true; //setto il flag per evitare aggiornamenti ricorsivi durante la modifica della lista
+    listView->DeleteAllItems(); //svuota la lista grafica
     const auto& items = list.getItems();
 
     //ricostruzione grafica con i dati aggiornati
@@ -96,20 +100,22 @@ void MainFrame::update() {
 
         //se è comprato, la colonna "Stato" diventa "PRESO" e il testo diventa verde. Altrimenti, "Da prendere" e testo nero
         if (item.isPurchased()) {
-            listView->SetItem(i, 4, "PRESO");
-            listView->SetItemTextColour(i, *wxLIGHT_GREY); //diventa verde
+            listView->CheckItem(i, true); // Mette la spunta
+            listView->SetItemTextColour(i, wxColour(150, 150, 150)); // Grigio
         } else {
-            listView->SetItem(i, 4, "Da prendere");
-            listView->SetItemTextColour(i, *wxBLACK);
+            listView->CheckItem(i, false); // Toglie la spunta
+            listView->SetItemTextColour(i, *wxBLACK); // Nero
         }
     }
 
     //aggiornamento del totale
     double total = list.getTotalCost(); //calcola il totale della lista (tutti gli elementi, anche quelli acquistati)
     totalText->SetLabel(wxString::Format("Totale Lista: %.2f €", total));
-
     //forzo il ridisegno della finestra per aggiornare la grafica
     totalText->GetParent()->Layout();
+
+    //reset del flag dopo l'aggiornamento
+    isUpdating = false;
 }
 
 
@@ -184,17 +190,6 @@ void MainFrame::OnEdit(wxCommandEvent& event) {
     }
 }
 
-//evento per il bottone "preso" (toggle stato di acquisto)
-void MainFrame::OnToggle(wxCommandEvent& event) {
-    long itemIndex = -1;
-    itemIndex = listView->GetNextItem(itemIndex, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
-
-    if (itemIndex != -1) {
-        list.togglePurchased(itemIndex);
-        // L'observer ridisegnerà la lista aggiornando la scritta "Preso/Da prendere"
-    }
-}
-
 void MainFrame::OnSave(wxCommandEvent& event) {
     //apre una finestra "Salva con nome"
     wxFileDialog saveFileDialog(this, "Salva lista spesa", "", "spesa.csv",
@@ -220,5 +215,18 @@ void MainFrame::OnLoad(wxCommandEvent& event) {
     //carica il file
     if (!list.loadFromFile(openFileDialog.GetPath().ToStdString())) {
         wxLogError("Impossibile caricare il file! Forse il formato è errato.");
+    }
+}
+
+void MainFrame::OnListCheck(wxListEvent &event) {
+    //se il flag è true, significa che stiamo già aggiornando la grafica in risposta a un cambiamento della lista, quindi non devo fare nulla
+    if (isUpdating) return;
+
+    //recupero l'indice della riga cliccata
+    long index = event.GetIndex();
+
+    //toggle dello stato di acquisto dell'elemento corrispondente nella lista logica. La lista poi notifica la MainFrame per aggiornare la grafica
+    if (index >= 0) {
+        list.togglePurchased(index);
     }
 }

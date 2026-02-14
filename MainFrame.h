@@ -10,12 +10,12 @@
 class MainFrame : public wxFrame, public Observer {
 private:
     ShoppingList& list; //riferimento alla lista logica
+    bool isUpdating; //flag per evitare aggiornamenti ricorsivi durante la modifica della lista
 
     //elementi grafici
     wxListView* listView;
     wxButton* addButton;
     wxButton* editButton;
-    wxButton* toggleButton;
     wxButton* removeButton;
 
     wxStaticText* totalText; //testo per visualizzare il totale
@@ -25,10 +25,10 @@ private:
     void OnAdd(wxCommandEvent& event); //per aggiungere prodotto
     void OnRemove(wxCommandEvent& event); //per rimuovere prodotto
     void OnEdit(wxCommandEvent& event); //per modificare prodotto
-    void OnToggle(wxCommandEvent& event); //per modificare lo stato di acquisto
     void OnQuit(wxCommandEvent& event); //per uscire dall'app
     void OnSave(wxCommandEvent& event); //per salvare la lista su file
     void OnLoad(wxCommandEvent& event); //per caricare la lista da un file
+    void OnListCheck(wxListEvent& event); //per gestire il toggle dello stato di acquisto (preso/da prendere) tramite checkbox nella lista
 
 public:
     //costruttore
