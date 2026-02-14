@@ -46,3 +46,38 @@ TEST(ShoppingListTest, PersistenzaFile) {
     //pulizia file di test
     std::remove(filename.c_str());
 }
+
+//test per la modifica di un elemento
+TEST(ShoppingListTest, ModificaElemento) {
+    ShoppingList lista;
+    ShoppingItem originale("Latte", 1, false, "Alim", 1.0);
+    lista.addItem(originale);
+
+    //creazione di un nuovo elemento con le modifiche desiderate
+    ShoppingItem modificato("Latte Scremato", 2, true, "Alim", 2.50);
+
+    //modifica dell'elemento nella lista (elemento 0)
+    lista.modifyItem(0, modificato);
+
+    //verifica
+    const auto& items = lista.getItems();
+    ASSERT_EQ(items.size(), 1); // La dimensione non deve cambiare
+    EXPECT_EQ(items[0].getName(), "Latte Scremato");
+    EXPECT_DOUBLE_EQ(items[0].getPrice(), 2.50);
+    EXPECT_EQ(items[0].getQuantity(), 2);
+    EXPECT_TRUE(items[0].isPurchased());
+}
+
+//test calcolo totale parziale (solo elementi acquistati)
+TEST(ShoppingListTest, CalcoloTotaleParziale) {
+    ShoppingList lista;
+    //aggiungo 3 prodotti
+    lista.addItem(ShoppingItem("Pasta", 1, true, "", 2.0));  // PRESO (2.0)
+    lista.addItem(ShoppingItem("Sugo", 1, false, "", 3.0));  // NON PRESO
+    lista.addItem(ShoppingItem("Vino", 1, true, "", 10.0));  // PRESO (10.0)
+
+    //il costo totale della lista è 2.0 + 3.0 + 10.0 = 15.0
+    EXPECT_DOUBLE_EQ(lista.getTotalCost(), 15.0);
+    //il costo totale degli elementi non acquistati è 3.0
+    EXPECT_DOUBLE_EQ(lista.getPurchasedCost(), 12.0);
+}
